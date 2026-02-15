@@ -244,7 +244,6 @@ function CityMarker({
       )}
       {!reducedMotion && (status === "active" || status === "complete") && (
         <>
-          {/* @ts-expect-error R3F mesh ref type differs from @types/three */}
           <mesh ref={glowRef} scale={[1.4, 1.4, 1.4]}>
             <sphereGeometry args={[MARKER_RADIUS * 1.8, 16, 12]} />
             <meshBasicMaterial
@@ -256,7 +255,6 @@ function CityMarker({
           </mesh>
         </>
       )}
-      {/* @ts-expect-error three.js BufferGeometry type mismatch with @react-three/fiber */}
       <mesh ref={meshRef}>
         <sphereGeometry args={[MARKER_RADIUS, 12, 8]} />
         <meshBasicMaterial color={color} />
@@ -326,7 +324,7 @@ function ArcLine({ curve, active, orderIndex, currentStep }: ArcLineProps) {
   if (!active && progressRef.current < 0.01) return null;
 
   return (
-    // @ts-expect-error three.js Line primitive, not SVG line
+    // @ts-expect-error R3F line is three.js Line, not SVG line
     <line ref={lineRef} geometry={geometry}>
       <lineDashedMaterial color={ARC_ACTIVE} dashSize={0} gapSize={999} />
     </line>
@@ -493,7 +491,6 @@ function GlobeScene({
         speed={1}
       />
 
-      {/* @ts-expect-error three.js BufferGeometry type mismatch with @react-three/fiber */}
       <mesh geometry={earthGeometry}>
         <meshStandardMaterial
           map={earthMap}
@@ -504,7 +501,6 @@ function GlobeScene({
         />
       </mesh>
 
-      {/* @ts-expect-error three.js BufferGeometry type mismatch with @react-three/fiber */}
       <mesh ref={atmosphereRef} geometry={atmosphereGeometry}>
         <meshBasicMaterial
           color={COLOR_ATMOSPHERE}
