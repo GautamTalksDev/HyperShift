@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# HyperShift
-=======
 # HyperShift
 
 Production-ready monorepo with pnpm workspaces + Turborepo: pipeline orchestration (Architect → Builder → Sentinel → SRE → FinOps), dashboard, public API, usage limits, audit log, optional approval gate, and CLI.
