@@ -30,14 +30,16 @@ const baseEnv = {
   FINOPS_AGENT_URL: "http://127.0.0.1:4006",
 };
 
+// Use 'env node' so the runner finds node from PATH (Render runtime may not have execPath)
+const nodeCmd = "env node";
 const services = [
-  { name: "api", cwd: path.join(root, "apps/api"), script: "node dist/index.js" },
-  { name: "orchestrator", cwd: path.join(root, "services/orchestrator"), script: "node dist/index.js" },
-  { name: "architect", cwd: path.join(root, "services/architect-agent"), script: "node dist/index.js" },
-  { name: "builder", cwd: path.join(root, "services/builder-agent"), script: "node dist/index.js" },
-  { name: "sentinel", cwd: path.join(root, "services/sentinel-agent"), script: "node dist/index.js" },
-  { name: "sre", cwd: path.join(root, "services/sre-agent"), script: "node dist/index.js" },
-  { name: "finops", cwd: path.join(root, "services/finops-agent"), script: "node dist/index.js" },
+  { name: "api", cwd: path.join(root, "apps/api"), script: `${nodeCmd} dist/index.js` },
+  { name: "orchestrator", cwd: path.join(root, "services/orchestrator"), script: `${nodeCmd} dist/index.js` },
+  { name: "architect", cwd: path.join(root, "services/architect-agent"), script: `${nodeCmd} dist/index.js` },
+  { name: "builder", cwd: path.join(root, "services/builder-agent"), script: `${nodeCmd} dist/index.js` },
+  { name: "sentinel", cwd: path.join(root, "services/sentinel-agent"), script: `${nodeCmd} dist/index.js` },
+  { name: "sre", cwd: path.join(root, "services/sre-agent"), script: `${nodeCmd} dist/index.js` },
+  { name: "finops", cwd: path.join(root, "services/finops-agent"), script: `${nodeCmd} dist/index.js` },
 ];
 
 const children = [];
@@ -66,7 +68,7 @@ for (const s of services) {
 
 // Start proxy last (uses PORT from env)
 const proxyScript = path.join(__dirname, "proxy.mjs");
-run("proxy", root, `node ${proxyScript}`, {});
+run("proxy", root, `${nodeCmd} ${proxyScript}`, {});
 
 process.on("SIGINT", () => {
   for (const { name, child } of children) {
