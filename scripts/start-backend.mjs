@@ -31,27 +31,25 @@ const baseEnv = {
   FINOPS_AGENT_URL: "http://127.0.0.1:4006",
 };
 
-// Use 'env node' so the runner finds node from PATH (Render runtime may not have execPath)
-const nodeCmd = "env node";
+// Spawn node directly (no shell) so we work on Render where /bin/sh may not exist
+const node = process.execPath;
 const services = [
-  { name: "api", cwd: path.join(root, "apps/api"), script: `${nodeCmd} dist/index.js` },
-  { name: "orchestrator", cwd: path.join(root, "services/orchestrator"), script: `${nodeCmd} dist/index.js` },
-  { name: "architect", cwd: path.join(root, "services/architect-agent"), script: `${nodeCmd} dist/index.js` },
-  { name: "builder", cwd: path.join(root, "services/builder-agent"), script: `${nodeCmd} dist/index.js` },
-  { name: "sentinel", cwd: path.join(root, "services/sentinel-agent"), script: `${nodeCmd} dist/index.js` },
-  { name: "sre", cwd: path.join(root, "services/sre-agent"), script: `${nodeCmd} dist/index.js` },
-  { name: "finops", cwd: path.join(root, "services/finops-agent"), script: `${nodeCmd} dist/index.js` },
+  { name: "api", cwd: path.join(root, "apps/api"), args: ["dist/index.js"] },
+  { name: "orchestrator", cwd: path.join(root, "services/orchestrator"), args: ["dist/index.js"] },
+  { name: "architect", cwd: path.join(root, "services/architect-agent"), args: ["dist/index.js"] },
+  { name: "builder", cwd: path.join(root, "services/builder-agent"), args: ["dist/index.js"] },
+  { name: "sentinel", cwd: path.join(root, "services/sentinel-agent"), args: ["dist/index.js"] },
+  { name: "sre", cwd: path.join(root, "services/sre-agent"), args: ["dist/index.js"] },
+  { name: "finops", cwd: path.join(root, "services/finops-agent"), args: ["dist/index.js"] },
 ];
 
 const children = [];
 
-function run(name, cwd, script, env) {
-  // Use shell so Render's runtime PATH is used to resolve 'node' (execPath can be invalid at runtime)
-  const child = spawn(script, [], {
+function run(name, cwd, args, env) {
+  const child = spawn(node, args, {
     cwd,
     env: { ...baseEnv, ...env },
     stdio: "inherit",
-    shell: true,
   });
   child.on("error", (err) => console.error(`[${name}] error:`, err));
   child.on("exit", (code, sig) => {
@@ -94,7 +92,7 @@ function waitForPort(host, port, label, timeoutMs = 30000) {
 
 // Start all backend services
 for (const s of services) {
-  run(s.name, s.cwd, s.script, {});
+  run(s.name, s.cwd, s.args, {});
 }
 
 // Wait for API and Orchestrator to listen, then start proxy (avoids ECONNREFUSED on Render health check)
@@ -109,7 +107,7 @@ for (const s of services) {
     process.exit(1);
   }
   const proxyScript = path.join(__dirname, "proxy.mjs");
-  run("proxy", root, `${nodeCmd} ${proxyScript}`, {});
+  run("proxy", root, [proxyScript], {});
 })();
 
 process.on("SIGINT", () => {
