@@ -43,13 +43,12 @@ const services = [
 const children = [];
 
 function run(name, cwd, script, env) {
-  const [cmd, ...args] = script.split(/\s+/);
-  // Use process.execPath so spawned processes find Node on Render (PATH may not include node)
-  const executable = cmd === "node" ? process.execPath : cmd;
-  const child = spawn(executable, args, {
+  // Use shell so Render's runtime PATH is used to resolve 'node' (execPath can be invalid at runtime)
+  const child = spawn(script, [], {
     cwd,
     env: { ...baseEnv, ...env },
     stdio: "inherit",
+    shell: true,
   });
   child.on("error", (err) => console.error(`[${name}] error:`, err));
   child.on("exit", (code, sig) => {
