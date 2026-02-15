@@ -1,0 +1,10 @@
+# HyperShift backend – single web service (API + Orchestrator + all agents behind one URL).
+# In Render Dashboard: connect this repo, create a Web Service. Use repo root (no rootDir).
+services:
+  - type: web
+    name: hypershift-backend
+    runtime: node
+    buildCommand: pnpm install && pnpm run build
+    startCommand: pnpm run start:backend
+    plan: free
+    healthCheckPath: /health

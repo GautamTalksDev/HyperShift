@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Logs
 logs
 *.log
@@ -137,3 +138,80 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+=======
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+.pnpm-store/
+
+# Environment and secrets (never commit)
+.env
+.env.example
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.development.local
+.env.production.local
+.env.test
+.env.test.local
+
+# Runtime data and local state
+data/
+data-test/
+builds/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs and debug
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript / build cache
+next-env.d.ts
+.eslintcache
+.cache/
+.prettiercache
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDE and editor (Cursor config and secrets)
+.cursor
+.cursor/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Deploy / tooling (local or with secrets)
+.vercel
+.sentryclirc
+.render/
+
+# Certificates and private keys (if ever added locally)
+*.pem
+*.key
+
+# Optional: lockfile (uncomment to ignore; usually you commit pnpm-lock.yaml)
+# pnpm-lock.yaml
+# package-lock.json
+# yarn.lock
+>>>>>>> bc5b209 (Initial commit - HyperShift autonomous cloud orchestration UI)

@@ -1,0 +1,71 @@
+// HyperShift dashboard: auth + workspaces. SQLite for dev; use postgres for production.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  passwordHash  String?   // For credentials auth; null for OAuth
+  accounts      Account[]
+  sessions      Session[]
+  workspaces    WorkspaceMember[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token         String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires   DateTime
+  @@id([identifier, token])
+}
+
+// Workspace id is the orchestrator workspace id (created via POST /workspaces).
+model Workspace {
+  id                    String   @id // orchestrator workspace id
+  name                  String
+  stripeCustomerId      String?  // for Customer Portal / manage subscription
+  stripeSubscriptionId  String?
+  members               WorkspaceMember[]
+}
+
+model WorkspaceMember {
+  userId           String
+  workspaceId      String
+  role             String   @default("operator") // admin | operator | viewer
+  notifyRunComplete Boolean @default(false)      // email when run completes or fails
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@id([userId, workspaceId])
+}
