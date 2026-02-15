@@ -258,11 +258,5 @@ MIT License
 
 ---
 
-## 👤 Author
-
-Built by Gautam Khosla
-
----
-
 > The future of software is not writing scripts for machines.
 > It is machines operating systems for humans.
