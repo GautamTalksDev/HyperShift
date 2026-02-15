@@ -6,6 +6,7 @@
  * The proxy listens on process.env.PORT and forwards /api -> API, / -> Orchestrator.
  */
 import { spawn } from "child_process";
+import net from "net";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -61,14 +62,55 @@ function run(name, cwd, script, env) {
   return child;
 }
 
+/** Wait for a port to accept connections (used so proxy doesn't start before backends). */
+function waitForPort(host, port, label, timeoutMs = 30000) {
+  const deadline = Date.now() + timeoutMs;
+  return new Promise((resolve, reject) => {
+    const tryConnect = () => {
+      const socket = new net.Socket();
+      const onError = () => {
+        socket.destroy();
+        if (Date.now() >= deadline) {
+          reject(new Error(`${label} (${host}:${port}) did not become ready in time`));
+          return;
+        }
+        setTimeout(tryConnect, 500);
+      };
+      socket.setTimeout(2000, () => {
+        socket.destroy();
+        onError();
+      });
+      socket.once("error", onError);
+      socket.once("connect", () => {
+        socket.destroy();
+        console.log(`[start] ${label} ready on ${host}:${port}`);
+        resolve();
+      });
+      socket.connect(port, host);
+    };
+    tryConnect();
+  });
+}
+
 // Start all backend services
 for (const s of services) {
   run(s.name, s.cwd, s.script, {});
 }
 
-// Start proxy last (uses PORT from env)
-const proxyScript = path.join(__dirname, "proxy.mjs");
-run("proxy", root, `${nodeCmd} ${proxyScript}`, {});
+// Wait for API and Orchestrator to listen, then start proxy (avoids ECONNREFUSED on Render health check)
+(async () => {
+  try {
+    await Promise.all([
+      waitForPort("127.0.0.1", 4000, "API", 30000),
+      waitForPort("127.0.0.1", 4001, "Orchestrator", 30000),
+    ]);
+  } catch (err) {
+    console.error("[start] Backends did not become ready:", err.message);
+    process.exit(1);
+  }
+  const proxyScript = path.join(__dirname, "proxy.mjs");
+  run("proxy", root, `${nodeCmd} ${proxyScript}`, {});
+})();
 
 process.on("SIGINT", () => {
   for (const { name, child } of children) {
