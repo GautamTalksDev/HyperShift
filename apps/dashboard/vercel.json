@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd .. && pnpm install",
-  "buildCommand": "pnpm run build",
+  "buildCommand": "cd .. && pnpm exec turbo run build --filter=@hypershift/dashboard",
   "framework": "nextjs"
 }

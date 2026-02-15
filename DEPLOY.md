@@ -71,7 +71,7 @@ The dashboard is the Next.js app in **`apps/dashboard`**. It depends on workspac
    - **Root Directory:** click **Edit**, set to **`apps/dashboard`**.
    - The repo’s `apps/dashboard/vercel.json` sets:
      - **Install Command:** `cd .. && pnpm install` (installs from repo root so workspace deps are available).
-     - **Build Command:** `pnpm run build` (Next.js build).
+     - **Build Command:** `cd .. && pnpm exec turbo run build --filter=@hypershift/dashboard` (builds `@hypershift/shared` and `@hypershift/contracts` first, then the dashboard).
    - **Framework Preset:** Next.js (auto-detected).
 
 4. Before deploying, set environment variables (see 2.2).
