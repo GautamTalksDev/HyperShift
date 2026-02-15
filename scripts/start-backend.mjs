@@ -44,7 +44,9 @@ const children = [];
 
 function run(name, cwd, script, env) {
   const [cmd, ...args] = script.split(/\s+/);
-  const child = spawn(cmd, args, {
+  // Use process.execPath so spawned processes find Node on Render (PATH may not include node)
+  const executable = cmd === "node" ? process.execPath : cmd;
+  const child = spawn(executable, args, {
     cwd,
     env: { ...baseEnv, ...env },
     stdio: "inherit",
