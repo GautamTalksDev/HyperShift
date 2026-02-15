@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd .. && pnpm install",
-  "buildCommand": "cd .. && (cd apps/dashboard && pnpm exec prisma generate) && pnpm exec turbo run build --filter=@hypershift/dashboard",
+  "buildCommand": "cd .. && pnpm --filter @hypershift/dashboard run db:generate && pnpm exec turbo run build --filter=@hypershift/dashboard",
   "framework": "nextjs"
 }
