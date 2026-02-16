@@ -4,6 +4,7 @@
  * Run from repo root. Ensures the orchestrator is running so the dashboard can connect.
  */
 import { spawn } from "child_process";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -17,15 +18,20 @@ const baseEnv = {
   ORCHESTRATOR_PORT: "4001",
   HOST: "0.0.0.0",
   ARCHITECT_AGENT_PORT: "4002",
-  BUILDER_AGENT_PORT: "4003",
-  SENTINEL_AGENT_PORT: "4004",
-  SRE_AGENT_PORT: "4005",
-  FINOPS_AGENT_PORT: "4006",
   ARCHITECT_AGENT_URL: "http://127.0.0.1:4002",
-  BUILDER_AGENT_URL: "http://127.0.0.1:4003",
-  SENTINEL_AGENT_URL: "http://127.0.0.1:4004",
-  SRE_AGENT_URL: "http://127.0.0.1:4005",
-  FINOPS_AGENT_URL: "http://127.0.0.1:4006",
+  // Builder, Sentinel, SRE, FinOps URLs left unset when agents don't exist → orchestrator uses stubs
+  ...(fs.existsSync(path.join(root, "services/builder-agent"))
+    ? { BUILDER_AGENT_PORT: "4003", BUILDER_AGENT_URL: "http://127.0.0.1:4003" }
+    : {}),
+  ...(fs.existsSync(path.join(root, "services/sentinel-agent"))
+    ? { SENTINEL_AGENT_PORT: "4004", SENTINEL_AGENT_URL: "http://127.0.0.1:4004" }
+    : {}),
+  ...(fs.existsSync(path.join(root, "services/sre-agent"))
+    ? { SRE_AGENT_PORT: "4005", SRE_AGENT_URL: "http://127.0.0.1:4005" }
+    : {}),
+  ...(fs.existsSync(path.join(root, "services/finops-agent"))
+    ? { FINOPS_AGENT_PORT: "4006", FINOPS_AGENT_URL: "http://127.0.0.1:4006" }
+    : {}),
 };
 
 const children = [];
@@ -54,11 +60,19 @@ run("api", path.join(root, "apps/api"), "pnpm", ["exec", "tsx", "watch", "src/in
 
 // Architect agent
 run("architect", path.join(root, "services/architect-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
-// Builder, Sentinel, SRE, FinOps (orchestrator needs these for full pipeline)
-run("builder", path.join(root, "services/builder-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
-run("sentinel", path.join(root, "services/sentinel-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
-run("sre", path.join(root, "services/sre-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
-run("finops", path.join(root, "services/finops-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
+// Builder, Sentinel, SRE, FinOps — only start if service dirs exist; else orchestrator uses stubs
+if (fs.existsSync(path.join(root, "services/builder-agent"))) {
+  run("builder", path.join(root, "services/builder-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
+}
+if (fs.existsSync(path.join(root, "services/sentinel-agent"))) {
+  run("sentinel", path.join(root, "services/sentinel-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
+}
+if (fs.existsSync(path.join(root, "services/sre-agent"))) {
+  run("sre", path.join(root, "services/sre-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
+}
+if (fs.existsSync(path.join(root, "services/finops-agent"))) {
+  run("finops", path.join(root, "services/finops-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
+}
 
 // Dashboard
 run("dashboard", path.join(root, "apps/dashboard"), "pnpm", ["run", "dev"]);

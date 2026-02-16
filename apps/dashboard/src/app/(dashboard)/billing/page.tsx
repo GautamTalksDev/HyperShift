@@ -34,7 +34,12 @@ export default function BillingPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (!auth) return;
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const timeout = window.setTimeout(() => setLoading(false), 10000);
     getUsage(auth)
       .then((u) =>
         setUsage({
@@ -45,7 +50,10 @@ export default function BillingPage() {
         }),
       )
       .catch(() => setUsage(null))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        window.clearTimeout(timeout);
+        setLoading(false);
+      });
   }, [auth?.workspaceId]);
 
   useEffect(() => {

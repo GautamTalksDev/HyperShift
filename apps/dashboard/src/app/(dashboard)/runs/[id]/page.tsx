@@ -1194,12 +1194,56 @@ export default function RunPage() {
           </div>
 
           {missionRun?.error && (
-            <Card className="border-destructive/50 bg-destructive/5">
+            <Card
+              className={
+                isAwaitingApproval
+                  ? "border-2 border-primary bg-primary/10"
+                  : "border-destructive/50 bg-destructive/5"
+              }
+            >
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-destructive">Error</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {missionRun.error}
+                <p
+                  className={
+                    isAwaitingApproval
+                      ? "text-sm font-medium text-foreground"
+                      : "text-sm font-medium text-destructive"
+                  }
+                >
+                  {isAwaitingApproval
+                    ? "Awaiting approval for production deploy"
+                    : "Error"}
                 </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {isAwaitingApproval
+                    ? "Approve to continue the pipeline (SRE → FinOps → deploy) or reject to keep this run blocked."
+                    : missionRun.error}
+                </p>
+                {isAwaitingApproval && showApprovalActions && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={approving}
+                      onClick={handleApprove}
+                      title="Approve production deploy"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />{" "}
+                      {approving ? "Approving…" : "Approve deploy"}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={rejecting}
+                      onClick={handleReject}
+                      title="Reject production deploy"
+                    >
+                      <XCircle className="h-4 w-4" />{" "}
+                      {rejecting ? "Rejecting…" : "Reject"}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

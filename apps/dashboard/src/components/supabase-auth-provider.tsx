@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -26,7 +26,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   const [workspaceId, setWorkspaceIdState] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchWorkspaces = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -67,8 +67,15 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   }, [workspaces]);
 
   useEffect(() => {
+    let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      if (cancelled) return;
+      setLoading(false);
+    }, 5000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (cancelled) return;
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchWorkspaces();
@@ -81,12 +88,22 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       },
     );
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return;
       setUser(session?.user ?? null);
       if (session?.user) fetchWorkspaces().then(() => setLoading(false));
       else setLoading(false);
+    }).catch(() => {
+      if (!cancelled) setLoading(false);
+    }).finally(() => {
+      if (!cancelled) window.clearTimeout(timeout);
     });
-    return () => subscription.unsubscribe();
-  }, [supabase.auth, fetchWorkspaces]);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   useEffect(() => {
     if (workspaces.length > 0 && !workspaceId) {

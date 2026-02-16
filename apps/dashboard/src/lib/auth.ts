@@ -41,8 +41,9 @@ export function clearSession(): void {
   localStorage.removeItem(SESSION_KEY);
 }
 
+/** Any stakeholder (viewer, operator, admin) can approve or reject a pipeline run. */
 export function canApproveReject(role?: Role): boolean {
-  return role === "admin" || role === "operator" || role === undefined;
+  return true;
 }
 
 export function canStartRun(role?: Role): boolean {
