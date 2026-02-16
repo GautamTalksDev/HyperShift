@@ -8,7 +8,7 @@ This guide gets the full platform live: **dashboard on Vercel** and **backend on
 
 - **Secrets:** Ensure no `.env` or `.env.local` files are committed (they are in `.gitignore`). Run `git status` and `git check-ignore -v apps/dashboard/.env` to confirm. If you ever committed a file with real API keys, rotate those keys (Groq, Gemini, Stripe, etc.) and remove the file from history (e.g. `git filter-branch` or BFG).
 - **GitHub:** Repo is ready to push. `.gitignore` covers dependencies, build outputs, env files, and IDE/OS cruft. No lockfile is ignored (commit `pnpm-lock.yaml`).
-- **Vercel:** Root directory `apps/dashboard`, `vercel.json` sets install/build. Set `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_ORCHESTRATOR_URL` to your backend URL. For sign-up/login in production, also set `DATABASE_URL` (e.g. Vercel Postgres or external), `NEXTAUTH_SECRET`, and `NEXTAUTH_URL` (your Vercel app URL, e.g. `https://your-app.vercel.app`).
+- **Vercel:** Root directory `apps/dashboard`, `vercel.json` sets install/build. Set `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_ORCHESTRATOR_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` so signup/login work (see §2.2).
 - **Render:** Use `render.yaml` or the steps in §1. Build: `pnpm install && pnpm run build`. Start: `pnpm run start:backend`. Health check uses `/health` (orchestrator). Optional: set `ORCHESTRATOR_DATABASE_PATH` on Render for persistent runs (or leave unset for in-memory).
 
 ---
@@ -71,7 +71,7 @@ The dashboard is the Next.js app in **`apps/dashboard`**. It depends on workspac
    - **Root Directory:** click **Edit**, set to **`apps/dashboard`**.
    - The repo’s `apps/dashboard/vercel.json` sets:
      - **Install Command:** `cd .. && pnpm install` (installs from repo root so workspace deps are available).
-     - **Build Command:** `cd .. && pnpm exec turbo run build --filter=@hypershift/dashboard` (builds `@hypershift/shared` and `@hypershift/contracts` first, then the dashboard).
+     - **Build Command:** (from `vercel.json`) `cd .. && pnpm exec turbo run build --filter=@hypershift/dashboard` — builds workspace packages and the dashboard; no database step.
    - **Framework Preset:** Next.js (auto-detected).
 
 4. Before deploying, set environment variables (see 2.2).
@@ -85,9 +85,17 @@ In the Vercel project → **Settings → Environment Variables**, add:
 | Variable                       | Value                                     | Notes                                          |
 | ------------------------------ | ----------------------------------------- | ---------------------------------------------- |
 | `NEXT_PUBLIC_API_URL`          | `https://<your-backend>.onrender.com/api` | Replace with your Render backend URL + `/api`. |
-| `NEXT_PUBLIC_ORCHESTRATOR_URL` | `https://<your-backend>.onrender.com`     | Same backend URL, no path.                     |
+| `NEXT_PUBLIC_ORCHESTRATOR_URL` | `https://<your-backend>.onrender.com`     | Same backend URL, no path. **Required for signup** (creates workspace). |
+| `NEXT_PUBLIC_SUPABASE_URL`     | Your Supabase project URL                 | From Supabase Dashboard → Settings → API. **Required for auth.** |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`| Supabase anon (publishable) key            | **Required for auth.** Same place as URL. |
+| `SUPABASE_SERVICE_ROLE_KEY`   | Supabase service_role key                 | **Required for signup** (creates user + workspace). Keep secret. |
+| `NEXT_PUBLIC_APP_URL`         | Your Vercel app URL (optional)            | e.g. `https://your-dashboard.vercel.app`. For Stripe redirects; can use `VERCEL_URL`. |
 
 Use the **exact** backend URL from step 1.2 (with `https://`). No trailing slash for the orchestrator URL.
+
+**Sign up not working?** Ensure the Supabase variables and backend URLs are set. Run **`docs/supabase-tables.sql`** once in the Supabase SQL Editor to create `profiles`, `workspaces`, and `workspace_members`. Redeploy after changing env vars.
+
+**Local dev:** Use the same Supabase project (or a separate one). Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in `apps/dashboard/.env`. Run `docs/supabase-tables.sql` in Supabase once.
 
 Optional (see `ENV.md` at repo root): LLM keys, Archestra, observability, etc. Add them in Vercel if you need them for the dashboard (e.g. Groq/Gemini for in-app LLM features).
 

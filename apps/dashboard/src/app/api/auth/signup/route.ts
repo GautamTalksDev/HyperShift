@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { hash } from "bcryptjs";
-import { prisma } from "@/lib/db";
+import { createServiceClient } from "@/lib/supabase/server";
 
 const ORCHESTRATOR_URL =
   process.env.NEXT_PUBLIC_ORCHESTRATOR_URL ?? "http://localhost:4001";
@@ -26,28 +25,49 @@ export async function POST(req: Request) {
       );
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return NextResponse.json(
-        { error: "An account with this email already exists." },
-        { status: 409 },
-      );
-    }
-
-    const passwordHash = await hash(password, 12);
+    const supabase = createServiceClient();
     const workspaceName = name ? `${name}'s Workspace` : "My Workspace";
 
-    // Create workspace in orchestrator so runs can be scoped to it
-    const createRes = await fetch(`${ORCHESTRATOR_URL}/workspaces`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: workspaceName }),
-    });
+    const { data: createUserData, error: createUserError } =
+      await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: name ?? email.split("@")[0] },
+      });
+    if (createUserError || !createUserData.user) {
+      console.error("[signup] Supabase createUser:", createUserError);
+      const msg = createUserError?.message ?? "Failed to create account.";
+      const isConflict = /already exists|already registered/i.test(msg);
+      return NextResponse.json(
+        { error: isConflict ? "An account with this email already exists." : msg },
+        { status: isConflict ? 409 : 500 },
+      );
+    }
+    const userId = createUserData.user.id;
+
+    let createRes: Response;
+    try {
+      createRes = await fetch(`${ORCHESTRATOR_URL}/workspaces`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: workspaceName }),
+      });
+    } catch (fetchErr) {
+      console.error("[signup] Orchestrator unreachable:", fetchErr);
+      return NextResponse.json(
+        {
+          error:
+            "Cannot reach the backend. Set NEXT_PUBLIC_ORCHESTRATOR_URL in Vercel.",
+        },
+        { status: 502 },
+      );
+    }
     if (!createRes.ok) {
       const err = await createRes.text();
       console.error("[signup] Orchestrator workspace create failed:", err);
       return NextResponse.json(
-        { error: "Failed to create workspace. Is the orchestrator running?" },
+        { error: "Failed to create workspace. Is the backend running?" },
         { status: 502 },
       );
     }
@@ -57,21 +77,30 @@ export async function POST(req: Request) {
       tier: string;
     };
 
-    const user = await prisma.user.create({
-      data: { email, name: name ?? email.split("@")[0], passwordHash },
+    await supabase.from("workspaces").upsert(
+      { id: workspace.id, name: workspace.name },
+      { onConflict: "id" },
+    );
+    await supabase.from("profiles").upsert(
+      { id: userId, email },
+      { onConflict: "id" },
+    );
+    const { error: memberError } = await supabase.from("workspace_members").insert({
+      user_id: userId,
+      workspace_id: workspace.id,
+      role: "admin",
     });
-    await prisma.workspace.upsert({
-      where: { id: workspace.id },
-      create: { id: workspace.id, name: workspace.name },
-      update: { name: workspace.name },
-    });
-    await prisma.workspaceMember.create({
-      data: { userId: user.id, workspaceId: workspace.id, role: "admin" },
-    });
+    if (memberError) {
+      console.error("[signup] workspace_members insert:", memberError);
+      return NextResponse.json(
+        { error: "Failed to link workspace. Run docs/supabase-tables.sql in Supabase." },
+        { status: 500 },
+      );
+    }
   } catch (e) {
     console.error("[signup]", e);
     return NextResponse.json(
-      { error: "Something went wrong." },
+      { error: e instanceof Error ? e.message : "Something went wrong." },
       { status: 500 },
     );
   }

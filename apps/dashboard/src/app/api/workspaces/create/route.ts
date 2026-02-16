@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-server";
-import { prisma } from "@/lib/db";
+import { getSession } from "@/lib/supabase/auth-server";
+import { createClient } from "@/lib/supabase/server";
 
 const ORCHESTRATOR_URL =
   process.env.NEXT_PUBLIC_ORCHESTRATOR_URL ?? "http://localhost:4001";
 
 /** POST /api/workspaces/create — Create a new workspace and add current user as admin. */
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -32,13 +31,15 @@ export async function POST(req: Request) {
     name: string;
     tier: string;
   };
-  await prisma.workspace.upsert({
-    where: { id: workspace.id },
-    create: { id: workspace.id, name: workspace.name },
-    update: { name: workspace.name },
-  });
-  await prisma.workspaceMember.create({
-    data: { userId: session.user.id, workspaceId: workspace.id, role: "admin" },
+  const supabase = await createClient();
+  await supabase.from("workspaces").upsert(
+    { id: workspace.id, name: workspace.name },
+    { onConflict: "id" },
+  );
+  await supabase.from("workspace_members").insert({
+    user_id: session.user.id,
+    workspace_id: workspace.id,
+    role: "admin",
   });
   return NextResponse.json(workspace);
 }

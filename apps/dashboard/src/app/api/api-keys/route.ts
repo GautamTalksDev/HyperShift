@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-server";
+import { getSession } from "@/lib/supabase/auth-server";
 
 const ORCHESTRATOR_URL =
   process.env.NEXT_PUBLIC_ORCHESTRATOR_URL ?? "http://localhost:4001";
@@ -14,7 +13,7 @@ function headers() {
 
 /** GET /api/api-keys — List API keys for current workspace (proxy to orchestrator). */
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.workspaceId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -35,7 +34,7 @@ export async function GET() {
 
 /** POST /api/api-keys — Create API key for current workspace (proxy to orchestrator). Body: { name?: string }. Returns { key } once. */
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.workspaceId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

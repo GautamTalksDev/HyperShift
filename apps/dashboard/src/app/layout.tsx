@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ApplySettings } from "@/components/apply-settings";
-import { SessionProvider } from "@/components/session-provider";
+import { SupabaseAuthProvider } from "@/components/supabase-auth-provider";
 import { SplashScreen } from "@/components/splash-screen";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -21,10 +21,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} antialiased`}>
-        <SessionProvider>
+        <SupabaseAuthProvider>
           <ApplySettings />
           <SplashScreen>{children}</SplashScreen>
-        </SessionProvider>
+        </SupabaseAuthProvider>
       </body>
     </html>
   );

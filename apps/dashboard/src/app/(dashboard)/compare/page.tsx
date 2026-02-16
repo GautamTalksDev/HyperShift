@@ -2,19 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/components/supabase-auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listRuns, getRun, type RunDetail } from "@/lib/orchestrator";
 import { JsonViewer } from "@/components/json-viewer";
 import { ArrowLeft, GitCompare } from "lucide-react";
 
 export default function ComparePage() {
-  const { data: session } = useSession();
-  const auth = session?.workspaceId
-    ? {
-        workspaceId: session.workspaceId,
-        userId: session.user?.email ?? undefined,
-      }
+  const { user, workspaceId } = useAuth();
+  const auth = workspaceId
+    ? { workspaceId, userId: user?.email ?? undefined }
     : undefined;
   const [runs, setRuns] = useState<{ id: string; codename?: string | null }[]>(
     [],
@@ -32,7 +29,7 @@ export default function ComparePage() {
       )
       .catch(() => setRuns([]))
       .finally(() => setLoading(false));
-  }, [session?.workspaceId]);
+  }, [workspaceId]);
 
   useEffect(() => {
     if (!runAId) {

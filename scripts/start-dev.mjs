@@ -17,7 +17,15 @@ const baseEnv = {
   ORCHESTRATOR_PORT: "4001",
   HOST: "0.0.0.0",
   ARCHITECT_AGENT_PORT: "4002",
+  BUILDER_AGENT_PORT: "4003",
+  SENTINEL_AGENT_PORT: "4004",
+  SRE_AGENT_PORT: "4005",
+  FINOPS_AGENT_PORT: "4006",
   ARCHITECT_AGENT_URL: "http://127.0.0.1:4002",
+  BUILDER_AGENT_URL: "http://127.0.0.1:4003",
+  SENTINEL_AGENT_URL: "http://127.0.0.1:4004",
+  SRE_AGENT_URL: "http://127.0.0.1:4005",
+  FINOPS_AGENT_URL: "http://127.0.0.1:4006",
 };
 
 const children = [];
@@ -46,6 +54,11 @@ run("api", path.join(root, "apps/api"), "pnpm", ["exec", "tsx", "watch", "src/in
 
 // Architect agent
 run("architect", path.join(root, "services/architect-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
+// Builder, Sentinel, SRE, FinOps (orchestrator needs these for full pipeline)
+run("builder", path.join(root, "services/builder-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
+run("sentinel", path.join(root, "services/sentinel-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
+run("sre", path.join(root, "services/sre-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
+run("finops", path.join(root, "services/finops-agent"), "pnpm", ["exec", "tsx", "watch", "src/index.ts"]);
 
 // Dashboard
 run("dashboard", path.join(root, "apps/dashboard"), "pnpm", ["run", "dev"]);

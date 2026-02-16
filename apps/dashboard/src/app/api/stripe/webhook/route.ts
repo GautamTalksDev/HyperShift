@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import Stripe from "stripe";
-import { prisma } from "@/lib/db";
+import { createServiceClient } from "@/lib/supabase/server";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     console.error("[stripe webhook] signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
+  const supabase = createServiceClient();
   const workspaceId = (
     event.data.object as { metadata?: { workspace_id?: string } }
   ).metadata?.workspace_id;
@@ -58,10 +59,13 @@ export async function POST(req: Request) {
       if (wid) {
         await setTier(wid, "pro");
         if (custId)
-          await prisma.workspace.updateMany({
-            where: { id: wid },
-            data: { stripeCustomerId: custId, stripeSubscriptionId: subId },
-          });
+          await supabase
+            .from("workspaces")
+            .update({
+              stripe_customer_id: custId,
+              stripe_subscription_id: subId,
+            })
+            .eq("id", wid);
       }
     }
     return NextResponse.json({ received: true });
@@ -70,18 +74,18 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
     await setTier(workspaceId, "pro");
     if (session.customer) {
-      await prisma.workspace.updateMany({
-        where: { id: workspaceId },
-        data: {
-          stripeCustomerId:
+      await supabase
+        .from("workspaces")
+        .update({
+          stripe_customer_id:
             typeof session.customer === "string"
               ? session.customer
               : session.customer.id,
-          stripeSubscriptionId: session.subscription
+          stripe_subscription_id: session.subscription
             ? String(session.subscription)
-            : undefined,
-        },
-      });
+            : null,
+        })
+        .eq("id", workspaceId);
     }
   } else if (
     event.type === "customer.subscription.updated" ||
@@ -92,10 +96,10 @@ export async function POST(req: Request) {
     const tier = sub.status === "active" ? "pro" : "free";
     await setTier(wid, tier);
     if (event.type === "customer.subscription.deleted") {
-      await prisma.workspace.updateMany({
-        where: { id: wid },
-        data: { stripeSubscriptionId: null },
-      });
+      await supabase
+        .from("workspaces")
+        .update({ stripe_subscription_id: null })
+        .eq("id", wid);
     }
   }
   return NextResponse.json({ received: true });

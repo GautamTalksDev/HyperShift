@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/components/supabase-auth-provider";
 import {
   Card,
   CardContent,
@@ -22,7 +22,7 @@ interface WorkspaceItem {
 }
 
 export default function WorkspacesPage() {
-  const { data: session, status } = useSession();
+  const { user, workspaceId, loading: authLoading } = useAuth();
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -36,7 +36,7 @@ export default function WorkspacesPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
+    if (authLoading || !user) return;
     fetch("/api/workspaces")
       .then((r) => r.json())
       .then((data: { workspaces?: WorkspaceItem[] }) =>
@@ -44,7 +44,7 @@ export default function WorkspacesPage() {
       )
       .catch(() => setWorkspaces([]))
       .finally(() => setLoading(false));
-  }, [status]);
+  }, [authLoading, user]);
 
   async function handleCreate() {
     if (!newName.trim() || creating) return;
@@ -85,7 +85,7 @@ export default function WorkspacesPage() {
   }
 
   async function handleInvite() {
-    if (!inviteEmail.trim() || inviting || !session?.workspaceId) return;
+    if (!inviteEmail.trim() || inviting || !workspaceId) return;
     setInviting(true);
     setMessage(null);
     try {
@@ -95,7 +95,7 @@ export default function WorkspacesPage() {
         body: JSON.stringify({
           email: inviteEmail.trim().toLowerCase(),
           role: inviteRole,
-          workspaceId: session.workspaceId,
+          workspaceId,
         }),
       });
       const data = (await res.json()) as { error?: string };
@@ -115,7 +115,7 @@ export default function WorkspacesPage() {
     }
   }
 
-  if (status !== "authenticated") return null;
+  if (authLoading || !user) return null;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-6 py-10">

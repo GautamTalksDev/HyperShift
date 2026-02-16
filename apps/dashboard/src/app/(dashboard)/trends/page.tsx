@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/components/supabase-auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listRuns, getRun } from "@/lib/orchestrator";
 import { ArrowLeft, TrendingUp } from "lucide-react";
@@ -20,12 +20,9 @@ import { BarChart, Bar } from "recharts";
 const MAX_RUNS = 30;
 
 export default function TrendsPage() {
-  const { data: session } = useSession();
-  const auth = session?.workspaceId
-    ? {
-        workspaceId: session.workspaceId,
-        userId: session.user?.email ?? undefined,
-      }
+  const { user, workspaceId } = useAuth();
+  const auth = workspaceId
+    ? { workspaceId, userId: user?.email ?? undefined }
     : undefined;
   const [costData, setCostData] = useState<{ date: string; cost: number }[]>(
     [],
@@ -99,7 +96,7 @@ export default function TrendsPage() {
     return () => {
       cancelled = true;
     };
-  }, [session?.workspaceId]);
+  }, [workspaceId]);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-6 py-10">

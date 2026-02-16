@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { JsonViewer } from "@/components/json-viewer";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/components/supabase-auth-provider";
 import {
   getRun,
   getRunLogs,
@@ -150,12 +150,9 @@ export default function RunPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
-  const auth = session?.workspaceId
-    ? {
-        workspaceId: session.workspaceId,
-        userId: session.user?.email ?? undefined,
-      }
+  const { user, workspaceId, role } = useAuth();
+  const auth = workspaceId
+    ? { workspaceId, userId: user?.email ?? undefined }
     : undefined;
   const id = params.id as string;
   const [run, setRun] = useState<RunDetail | null>(null);
@@ -373,7 +370,7 @@ export default function RunPage() {
   const showApprovalActions =
     isAwaitingApproval &&
     canApproveReject(
-      session?.role as "viewer" | "operator" | "admin" | undefined,
+      role as "viewer" | "operator" | "admin" | undefined,
     );
   const handleApprove = async () => {
     if (!run || approving) return;

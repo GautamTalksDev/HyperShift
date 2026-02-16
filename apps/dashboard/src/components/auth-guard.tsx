@@ -2,29 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/components/supabase-auth-provider";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const { user, loading } = useAuth();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (status === "loading") return;
+    if (loading) return;
     setChecked(true);
-    if (status === "unauthenticated" || !session) {
+    if (!user) {
       const loginUrl = `/login?redirect=${encodeURIComponent(pathname || "/")}`;
       router.replace(loginUrl);
     }
-  }, [router, pathname, session, status]);
+  }, [router, pathname, user, loading]);
 
-  if (
-    !checked ||
-    status === "loading" ||
-    status === "unauthenticated" ||
-    !session
-  ) {
+  if (!checked || loading || !user) {
     return (
       <div
         className="flex min-h-screen flex-col items-center justify-center bg-background"

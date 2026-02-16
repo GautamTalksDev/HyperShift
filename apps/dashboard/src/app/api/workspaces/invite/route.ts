@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-server";
-import { prisma } from "@/lib/db";
+import { getSession } from "@/lib/supabase/auth-server";
+import { createClient } from "@/lib/supabase/server";
 
 /** POST /api/workspaces/invite — Add a user to the current workspace by email. */
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id || !session?.workspaceId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -21,9 +20,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
   }
 
-  const member = await prisma.workspaceMember.findUnique({
-    where: { userId_workspaceId: { userId: session.user.id, workspaceId } },
-  });
+  const supabase = await createClient();
+  const { data: member } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("user_id", session.user.id)
+    .eq("workspace_id", workspaceId)
+    .single();
   if (
     !member ||
     (member.role !== "admin" && workspaceId !== session.workspaceId)
@@ -34,8 +37,12 @@ export async function POST(req: Request) {
     );
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .single();
+  if (!profile?.id) {
     return NextResponse.json(
       {
         error: "No account found with that email. They need to sign up first.",
@@ -44,18 +51,17 @@ export async function POST(req: Request) {
     );
   }
 
-  try {
-    await prisma.workspaceMember.create({
-      data: { userId: user.id, workspaceId, role },
-    });
-    return NextResponse.json({ ok: true });
-  } catch (e: unknown) {
-    if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
+  const { error: insertError } = await supabase
+    .from("workspace_members")
+    .insert({ user_id: profile.id, workspace_id: workspaceId, role });
+  if (insertError) {
+    if (insertError.code === "23505") {
       return NextResponse.json(
         { error: "User is already a member of this workspace" },
         { status: 409 },
       );
     }
-    throw e;
+    throw insertError;
   }
+  return NextResponse.json({ ok: true });
 }

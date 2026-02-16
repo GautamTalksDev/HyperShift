@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/components/supabase-auth-provider";
 import {
   Card,
   CardContent,
@@ -15,12 +15,9 @@ import { getUsage } from "@/lib/orchestrator";
 import { ArrowLeft, CreditCard, Loader2, Zap } from "lucide-react";
 
 export default function BillingPage() {
-  const { data: session } = useSession();
-  const auth = session?.workspaceId
-    ? {
-        workspaceId: session.workspaceId,
-        userId: session.user?.email ?? undefined,
-      }
+  const { user, workspaceId } = useAuth();
+  const auth = workspaceId
+    ? { workspaceId, userId: user?.email ?? undefined }
     : undefined;
   const [usage, setUsage] = useState<{
     runs: number;

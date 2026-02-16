@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { useSession, signOut } from "next-auth/react";
+import { useAuth } from "@/components/supabase-auth-provider";
+import { createClient } from "@/lib/supabase/client";
 import {
   listRuns,
   createRun,
@@ -38,12 +39,9 @@ import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 
 export default function Home() {
   const router = useRouter();
-  const { data: session } = useSession();
-  const auth = session?.workspaceId
-    ? {
-        workspaceId: session.workspaceId,
-        userId: session.user?.email ?? undefined,
-      }
+  const { user, workspaceId } = useAuth();
+  const auth = workspaceId
+    ? { workspaceId, userId: user?.email ?? undefined }
     : undefined;
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +84,7 @@ export default function Home() {
         }),
       )
       .catch(() => setUsage(null));
-  }, [orchestratorOffline, runs.length, session?.workspaceId]);
+  }, [orchestratorOffline, runs.length, workspaceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,7 +116,7 @@ export default function Home() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [tagFilter, orchestratorOffline, session?.workspaceId]);
+  }, [tagFilter, orchestratorOffline, workspaceId]);
 
   async function runWithIntent(
     user_intent: {
@@ -220,8 +218,9 @@ export default function Home() {
     }
   }
 
-  function handleSignOut() {
-    signOut({ callbackUrl: "/login" });
+  async function handleSignOut() {
+    await createClient().auth.signOut();
+    router.push("/login");
   }
 
   return (

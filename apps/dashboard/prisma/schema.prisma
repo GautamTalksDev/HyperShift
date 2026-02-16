@@ -1,11 +1,11 @@
-// HyperShift dashboard: auth + workspaces. SQLite for dev; use postgres for production.
+// HyperShift dashboard: auth + workspaces. Use Postgres (local or Vercel Postgres / Neon).
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

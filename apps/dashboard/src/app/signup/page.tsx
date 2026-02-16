@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,10 +23,6 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    // No session check here; if user is already logged in they can still sign up another account from another device
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,16 +54,16 @@ export default function SignUpPage() {
         setSubmitting(false);
         return;
       }
-      const result = await signIn("credentials", {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
-        redirect: false,
       });
-      if (result?.ok) {
-        router.replace("/");
+      if (signInError) {
+        router.replace("/login");
         return;
       }
-      router.replace("/login");
+      router.replace("/");
     } catch {
       setError("Something went wrong.");
     } finally {
