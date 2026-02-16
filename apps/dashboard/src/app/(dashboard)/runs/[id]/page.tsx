@@ -150,7 +150,7 @@ export default function RunPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, workspaceId, role } = useAuth();
+  const { user, workspaceId } = useAuth();
   const auth = workspaceId
     ? { workspaceId, userId: user?.email ?? undefined }
     : undefined;
@@ -369,9 +369,7 @@ export default function RunPage() {
       (run?.error?.toLowerCase().includes("awaiting approval") ?? false));
   const showApprovalActions =
     isAwaitingApproval &&
-    canApproveReject(
-      role as "viewer" | "operator" | "admin" | undefined,
-    );
+    canApproveReject();
   const handleApprove = async () => {
     if (!run || approving) return;
     setApproving(true);

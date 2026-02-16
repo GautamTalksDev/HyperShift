@@ -42,7 +42,7 @@ export function clearSession(): void {
 }
 
 /** Any stakeholder (viewer, operator, admin) can approve or reject a pipeline run. */
-export function canApproveReject(_role?: Role): boolean {
+export function canApproveReject(): boolean {
   return true;
 }
 
