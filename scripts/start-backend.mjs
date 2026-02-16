@@ -4,14 +4,21 @@
  * single-port proxy. Use this for production deploy (Render, Railway, Fly.io).
  * Expects: run from repo root, after `pnpm build`.
  * The proxy listens on process.env.PORT and forwards /api -> API, / -> Orchestrator.
+ * Only starts services whose directories exist; orchestrator uses stubs for missing agents.
  */
 import { spawn } from "child_process";
+import fs from "fs";
 import net from "net";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
+
+const hasBuilder = fs.existsSync(path.join(root, "services/builder-agent"));
+const hasSentinel = fs.existsSync(path.join(root, "services/sentinel-agent"));
+const hasSre = fs.existsSync(path.join(root, "services/sre-agent"));
+const hasFinops = fs.existsSync(path.join(root, "services/finops-agent"));
 
 const baseEnv = {
   ...process.env,
@@ -20,20 +27,16 @@ const baseEnv = {
   ORCHESTRATOR_PORT: "4001",
   HOST: "0.0.0.0",
   ARCHITECT_AGENT_PORT: "4002",
-  BUILDER_AGENT_PORT: "4003",
-  SENTINEL_AGENT_PORT: "4004",
-  SRE_AGENT_PORT: "4005",
-  FINOPS_AGENT_PORT: "4006",
   ARCHITECT_AGENT_URL: "http://127.0.0.1:4002",
-  BUILDER_AGENT_URL: "http://127.0.0.1:4003",
-  SENTINEL_AGENT_URL: "http://127.0.0.1:4004",
-  SRE_AGENT_URL: "http://127.0.0.1:4005",
-  FINOPS_AGENT_URL: "http://127.0.0.1:4006",
+  ...(hasBuilder ? { BUILDER_AGENT_PORT: "4003", BUILDER_AGENT_URL: "http://127.0.0.1:4003" } : {}),
+  ...(hasSentinel ? { SENTINEL_AGENT_PORT: "4004", SENTINEL_AGENT_URL: "http://127.0.0.1:4004" } : {}),
+  ...(hasSre ? { SRE_AGENT_PORT: "4005", SRE_AGENT_URL: "http://127.0.0.1:4005" } : {}),
+  ...(hasFinops ? { FINOPS_AGENT_PORT: "4006", FINOPS_AGENT_URL: "http://127.0.0.1:4006" } : {}),
 };
 
 // Spawn node directly (no shell) so we work on Render where /bin/sh may not exist
 const node = process.execPath;
-const services = [
+const allServices = [
   { name: "api", cwd: path.join(root, "apps/api"), args: ["dist/index.js"] },
   { name: "orchestrator", cwd: path.join(root, "services/orchestrator"), args: ["dist/index.js"] },
   { name: "architect", cwd: path.join(root, "services/architect-agent"), args: ["dist/index.js"] },
@@ -42,6 +45,7 @@ const services = [
   { name: "sre", cwd: path.join(root, "services/sre-agent"), args: ["dist/index.js"] },
   { name: "finops", cwd: path.join(root, "services/finops-agent"), args: ["dist/index.js"] },
 ];
+const services = allServices.filter((s) => fs.existsSync(s.cwd));
 
 const children = [];
 
